@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Agent Task Automation System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .task-step {
+            transition: all 0.3s ease-in-out;
+        }
+        .task-step.pending {
+            border-left-color: #9CA3AF;
+        }
+        .task-step.in-progress {
+            border-left-color: #3B82F6;
+            background-color: #EFF6FF;
+        }
+        .task-step.completed {
+            border-left-color: #22C55E;
+        }
+        .task-step.failed {
+            border-left-color: #EF4444;
+            background-color: #FEF2F2;
+        }
+        .log-entry {
+            transition: background-color 0.3s ease;
+        }
+        .log-entry:hover {
+            background-color: #f9fafb;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="min-h-screen flex flex-col lg:flex-row">
+        <main class="flex-1 p-4 sm:p-6 lg:p-8">
+            <header class="mb-8">
+                <h1 class="text-3xl font-bold text-gray-900">Multi-Agent Task Automation</h1>
+                <p class="text-gray-600 mt-1">Describe a task in plain language, and our agents will handle it end-to-end.</p>
+            </header>
+
+            <div class="bg-white p-6 rounded-lg shadow-sm mb-8">
+                <label for="task-input" class="block text-lg font-semibold text-gray-800 mb-2">What would you like to accomplish?</label>
+                <div class="relative">
+                    <textarea id="task-input" class="w-full p-4 pr-28 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" rows="4" placeholder="e.g., Who is our CEO according to the knowledge base? Then post the answer to the #social channel on Slack."></textarea>
+                    <button id="start-task-btn" class="absolute top-1/2 right-4 -translate-y-1/2 bg-blue-600 text-white font-semibold px-5 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 transition duration-300">
+                        <i class="fas fa-rocket mr-2"></i>Automate
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                <div class="xl:col-span-2 bg-white p-6 rounded-lg shadow-sm">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-sitemap mr-3 text-blue-500"></i>Agent Execution Plan</h2>
+                    <div id="task-plan-container" class="space-y-4">
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-wand-magic-sparkles fa-2x mb-2"></i>
+                            <p>Your execution plan will appear here once a task is started.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center"><i class="fas fa-history mr-3 text-green-500"></i>Activity Log</h2>
+                    <div id="activity-log-container" class="h-96 overflow-y-auto space-y-3 pr-2">
+                        <div class="text-center pt-8 text-gray-500">
+                            <i class="fas fa-scroll fa-2x mb-2"></i>
+                            <p>Real-time agent activities will be logged here.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <aside class="w-full lg:w-80 bg-white border-l border-gray-200 p-6">
+            <div class="sticky top-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-6 flex items-center"><i class="fas fa-cogs mr-3 text-gray-600"></i>System Status</h2>
+                
+                <div class="bg-gray-100 p-4 rounded-lg mb-6">
+                    <div class="flex items-center justify-between">
+                        <span class="font-medium">Orchestrator:</span>
+                        <span id="system-status" class="font-semibold text-green-600 flex items-center">
+                            <span class="h-3 w-3 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+                            Online
+                        </span>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Connections</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+                        <i class="fab fa-slack text-purple-500 text-xl mr-4"></i>
+                        <span class="font-medium">Slack</span>
+                        <span class="text-sm font-semibold text-green-600">Configured</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+                        <i class="fab fa-google text-red-500 text-xl mr-4"></i>
+                        <span class="font-medium">Google Calendar</span>
+                        <span class="text-sm font-semibold text-green-600">Configured</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+                        <i class="fas fa-phone-alt text-blue-500 text-xl mr-4"></i>
+                        <span class="font-medium">Twilio</span>
+                        <span class="text-sm font-semibold text-green-600">Configured</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const startTaskBtn = document.getElementById('start-task-btn');
+        const taskInput = document.getElementById('task-input');
+        const taskPlanContainer = document.getElementById('task-plan-container');
+        const activityLogContainer = document.getElementById('activity-log-container');
+        const startBtnIcon = startTaskBtn.querySelector('i');
+        const startBtnTextNode = Array.from(startTaskBtn.childNodes).find(node => node.nodeType === Node.TEXT_NODE);
+
+        const BACKEND_API_URL = 'http://127.0.0.1:8000/api/tasks';
+        const BACKEND_WS_URL = 'ws://127.0.0.1:8000/ws/client123';
+
+        let socket;
+
+        startTaskBtn.addEventListener('click', startTaskExecution);
+
+        async function startTaskExecution() {
+            const prompt = taskInput.value.trim();
+            if (!prompt) {
+                showModal('Please describe a task first.');
+                return;
+            }
+
+            setButtonLoading(true);
+            resetUI();
+            connectWebSocket();
+
+            try {
+                const response = await fetch(BACKEND_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: prompt })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ detail: 'Unknown server error' }));
+                    throw new Error(`HTTP error! status: ${response.status} - ${errorData.detail}`);
+                }
+
+                const result = await response.json();
+                console.log('Task started:', result);
+                addLogEntry('System', 'Task request sent to orchestrator.', 'info');
+
+            } catch (error) {
+                console.error('Failed to start task:', error);
+                addLogEntry('System', `Failed to start task: ${error.message}. Is the backend server running?`, 'error');
+                setButtonLoading(false);
+            }
+        }
+        
+        function setButtonLoading(isLoading) {
+            if (isLoading) {
+                startTaskBtn.disabled = true;
+                startBtnIcon.className = 'fas fa-spinner fa-spin mr-2';
+                if(startBtnTextNode) startBtnTextNode.textContent = ' Working...';
+            } else {
+                startTaskBtn.disabled = false;
+                startBtnIcon.className = 'fas fa-rocket mr-2';
+                if(startBtnTextNode) startBtnTextNode.textContent = 'Automate';
+            }
+        }
+
+        function resetUI() {
+            taskPlanContainer.innerHTML = `
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-brain fa-2x mb-2 animate-pulse"></i>
+                    <p>Waiting for the execution plan from the Planner Agent...</p>
+                </div>`;
+            activityLogContainer.innerHTML = '';
+        }
+
+        function connectWebSocket() {
+            if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+                return; 
+            }
+
+            socket = new WebSocket(BACKEND_WS_URL);
+
+            socket.onopen = () => {
+                console.log('WebSocket connection established.');
+                addLogEntry('System', 'Real-time monitoring connected.', 'success');
+            };
+
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                console.log('Received message:', data);
+
+                switch (data.type) {
+                    case 'plan':
+                        displayPlan(data.steps);
+                        break;
+                    case 'log':
+                        addLogEntry(data.agent, data.message, data.log_type);
+                        if (data.message.includes('completed') || data.message.includes('Failed')) {
+                             setButtonLoading(false);
+                        }
+                        break;
+                    case 'status_update':
+                        updateStepStatus(data.step_action, data.status);
+                        break;
+                }
+            };
+
+            socket.onclose = () => {
+                console.log('WebSocket connection closed.');
+                addLogEntry('System', 'Real-time monitoring disconnected.', 'error');
+                setButtonLoading(false);
+            };
+
+            socket.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                addLogEntry('System', 'A real-time connection error occurred. Please ensure the backend is running.', 'error');
+                setButtonLoading(false);
+            };
+        }
+
+        function displayPlan(steps) {
+            taskPlanContainer.innerHTML = '';
+            steps.forEach(step => {
+                const elementId = `step-${step.action.replace(/[^a-zA-Z0-9]/g, '-')}`;
+                const stepElement = document.createElement('div');
+                stepElement.id = elementId;
+                stepElement.className = 'task-step border-l-4 p-4 rounded-r-lg shadow-sm bg-white pending';
+                stepElement.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-semibold text-gray-700">${step.agent}</p>
+                            <p class="text-sm text-gray-500">${step.action}</p>
+                        </div>
+                        <div class="flex items-center text-gray-400">
+                             <i class="fas fa-clock mr-2"></i> 
+                             <span class="status-text">Pending</span>
+                        </div>
+                    </div>
+                `;
+                taskPlanContainer.appendChild(stepElement);
+            });
+        }
+
+        function updateStepStatus(stepAction, status) {
+            const elementId = `step-${stepAction.replace(/[^a-zA-Z0-9]/g, '-')}`;
+            const stepElement = document.getElementById(elementId);
+            if (!stepElement) {
+                console.warn(`Could not find step element for action: ${stepAction}`);
+                return;
+            }
+
+            stepElement.classList.remove('pending', 'in-progress', 'completed', 'failed');
+            stepElement.classList.add(status);
+
+            const statusText = stepElement.querySelector('.status-text');
+            const icon = stepElement.querySelector('i');
+            icon.className = 'mr-2 fas';
+
+            if (status === 'in-progress') {
+                statusText.textContent = 'In Progress';
+                statusText.parentElement.className = 'flex items-center text-blue-500';
+                icon.classList.add('fa-spinner', 'fa-spin');
+            } else if (status === 'completed') {
+                statusText.textContent = 'Completed';
+                statusText.parentElement.className = 'flex items-center text-green-500';
+                icon.classList.add('fa-check-circle');
+            } else if (status === 'failed') {
+                statusText.textContent = 'Failed';
+                statusText.parentElement.className = 'flex items-center text-red-500';
+                icon.classList.add('fa-exclamation-triangle');
+            }
+        }
+
+        function addLogEntry(agent, message, type) {
+            const entryElement = document.createElement('div');
+            entryElement.className = 'log-entry border-b border-gray-100 pb-2';
+            let icon = '';
+            let colorClass = '';
+
+            switch(type) {
+                case 'info': icon = '<i class="fas fa-info-circle text-blue-500"></i>'; colorClass = 'text-gray-700'; break;
+                case 'success': icon = '<i class="fas fa-check-circle text-green-500"></i>'; colorClass = 'text-green-700 font-semibold'; break;
+                case 'error': icon = '<i class="fas fa-exclamation-triangle text-red-500"></i>'; colorClass = 'text-red-700 font-semibold'; break;
+                default: icon = '<i class="fas fa-robot text-gray-500"></i>'; colorClass = 'text-gray-700';
+            }
+            
+            entryElement.innerHTML = `
+                <p class="text-sm ${colorClass} flex items-start">
+                    <span class="mr-2 pt-1">${icon}</span>
+                    <span><strong>[${agent}]</strong> ${message}</span>
+                </p>
+                <p class="text-xs text-gray-400 text-right">${new Date().toLocaleTimeString()}</p>
+            `;
+            activityLogContainer.prepend(entryElement);
+        }
+
+        function showModal(message) {
+            const existingModal = document.getElementById('app-modal');
+            if(existingModal) existingModal.remove();
+
+            const modal = document.createElement('div');
+            modal.id = 'app-modal';
+            modal.style.cssText = 'position: fixed; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000;';
+            modal.innerHTML = `
+                <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <p style="margin: 0; font-size: 1.1rem;">${message}</p>
+                    <button id="modal-close" style="margin-top: 1.5rem; padding: 0.5rem 1.5rem; border-radius: 6px; border: none; background: #3B82F6; color: white; cursor: pointer;">OK</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            document.getElementById('modal-close').onclick = () => {
+                document.body.removeChild(modal);
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
+
+s
